@@ -1,0 +1,489 @@
+gacha {
+    meta {
+        schema_version = 1
+        content_tier = "v1_subset"
+    }
+
+    rules {
+        warrior_slots = 5
+        item_slots = 5
+        pick_count = 3
+
+        rarity_weights {
+            common = 60
+            rare = 28
+            epic = 10
+            legendary = 2
+        }
+
+        guarantee_rare_plus_every = 4
+        legendary_unlock_level = 6
+    }
+
+    warriors {
+        fire_archer {
+            slot_type = "warrior"
+            role = "attacker"
+            damage = 8
+            range_px = 2000.0
+            attack_interval_sec = 1.0
+            projectile_speed_px_per_sec = 700.0
+            burn_dps = 3.0
+            burn_duration_sec = 3.0
+            upgrades {
+                damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+1 arrow damage"
+                }
+                burn_duration_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+0.5s burn duration"
+                }
+                burn_dps_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "+2 burn damage per second"
+                }
+                burn_spread_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Burning enemies spread fire on death"
+                }
+            }
+        }
+
+        ice_archer {
+            slot_type = "warrior"
+            role = "attacker"
+            damage = 7
+            range_px = 2000.0
+            attack_interval_sec = 1.0
+            projectile_speed_px_per_sec = 700.0
+            slow_percent = 30.0
+            slow_duration_sec = 2.0
+            upgrades {
+                damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+1 arrow damage"
+                }
+                slow_duration_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+0.3s slow duration"
+                }
+                slow_strength_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "+10% slow strength"
+                }
+                freeze_chance_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Chance to freeze for 1s"
+                }
+            }
+        }
+
+        lightning_archer {
+            slot_type = "warrior"
+            role = "attacker"
+            damage = 7
+            range_px = 2000.0
+            attack_interval_sec = 1.0
+            projectile_speed_px_per_sec = 700.0
+            chain_targets = 2
+            chain_damage_percent = 50.0
+            upgrades {
+                damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+1 arrow damage"
+                }
+                chain_range_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+1 chain range"
+                }
+                chain_target_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "+1 chain target"
+                }
+                chain_stun_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Chain hits briefly stun"
+                }
+            }
+        }
+
+        ballista_operator {
+            slot_type = "warrior"
+            role = "attacker"
+            damage = 35
+            range_px = 2400.0
+            attack_interval_sec = 4.0
+            projectile_speed_px_per_sec = 900.0
+            target_mode = "strongest"
+            upgrades {
+                damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5 bolt damage"
+                }
+                cooldown_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "-0.1s cooldown"
+                }
+                pierce_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Bolts pierce +1 enemy"
+                }
+                pin_stun_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Bolts pin and stun"
+                }
+            }
+        }
+
+        catapult_engineer {
+            slot_type = "warrior"
+            role = "attacker"
+            damage = 18
+            range_px = 2200.0
+            attack_interval_sec = 2.5
+            aoe_radius_px = 55.0
+            upgrades {
+                damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+2 boulder damage"
+                }
+                aoe_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+10% AoE radius"
+                }
+                cooldown_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "-0.2s cooldown"
+                }
+                smart_target_epic {
+                    rarity = "epic"
+                    stackable = false
+                    label = "Targets largest enemy cluster"
+                }
+            }
+        }
+
+        bard {
+            slot_type = "warrior"
+            role = "support"
+            attack_speed_aura_percent = 15.0
+            upgrades {
+                attack_speed_aura_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+3% global attack speed aura"
+                }
+                aura_range_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+10% aura range"
+                }
+                global_damage_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "+5% global warrior damage"
+                }
+                bonus_attack_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Random warrior bonus attack"
+                }
+            }
+        }
+
+        priestess {
+            slot_type = "warrior"
+            role = "support"
+            castle_heal_per_sec = 2.0
+            upgrades {
+                regen_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+0.5 castle HP/sec"
+                }
+                max_hp_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5 max castle HP"
+                }
+                barrier_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Periodic damage barrier"
+                }
+                holy_ground_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Enemies near castle deal less damage"
+                }
+            }
+        }
+
+        blacksmith {
+            slot_type = "warrior"
+            role = "support"
+            warrior_damage_aura_percent = 20.0
+            upgrades {
+                warrior_damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5% warrior damage aura"
+                }
+                crit_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5% warrior crit chance"
+                }
+                flat_damage_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "+2 flat damage per hit"
+                }
+                fire_enchant_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "All warrior attacks gain small burn"
+                }
+            }
+        }
+    }
+
+    items {
+        ruby_amulet {
+            slot_type = "item"
+            fire_damage_percent = 30.0
+            upgrades {
+                fire_damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5% fire damage"
+                }
+                fire_duration_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+0.5s fire effect duration"
+                }
+                fire_explode_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Fire kills explode"
+                }
+                inferno_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Fire patches grow over time"
+                }
+            }
+        }
+
+        sapphire_amulet {
+            slot_type = "item"
+            slow_strength_percent = 20.0
+            slow_duration_sec = 1.0
+            upgrades {
+                slow_strength_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5% slow strength"
+                }
+                slow_duration_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+0.3s slow duration"
+                }
+                damage_vs_slowed_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Slowed enemies take +10% damage"
+                }
+                blizzard_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Periodic global slow"
+                }
+            }
+        }
+
+        topaz_amulet {
+            slot_type = "item"
+            chain_targets_bonus = 1
+            upgrades {
+                chain_damage_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5% chain damage"
+                }
+                chain_range_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+10% chain range"
+                }
+                chain_target_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "+1 chain target"
+                }
+                storm_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Periodic global lightning strike"
+                }
+            }
+        }
+
+        iron_shield_charm {
+            slot_type = "item"
+            damage_resistance_percent = 10.0
+            upgrades {
+                resistance_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+2% damage resistance"
+                }
+                max_hp_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5 max HP"
+                }
+                reflect_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Reflect blocked damage"
+                }
+                damage_cap_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Cap max damage per hit"
+                }
+            }
+        }
+
+        healing_totem {
+            slot_type = "item"
+            regen_per_sec = 1.0
+            upgrades {
+                regen_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+0.3 HP/sec"
+                }
+                max_hp_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+3 max HP"
+                }
+                start_heal_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Heal at level start"
+                }
+                overheal_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Healing can overheal"
+                }
+            }
+        }
+
+        scholars_tome {
+            slot_type = "item"
+            xp_gain_percent = 25.0
+            upgrades {
+                xp_percent_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+5% XP gain"
+                }
+                xp_flat_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+1 XP per kill"
+                }
+                quick_kill_bonus_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Bonus XP for fast kills"
+                }
+                extra_choice_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Gacha offers +1 choice"
+                }
+            }
+        }
+
+        lucky_clover {
+            slot_type = "item"
+            rarity_shift_enabled = true
+            upgrades {
+                common_to_rare_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "Shift 2% common to rare"
+                }
+                rare_to_epic_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "Shift 1% rare to epic"
+                }
+                rarity_floor_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Guarantee at least rare"
+                }
+                epic_to_legendary_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Shift 3% epic to legendary"
+                }
+            }
+        }
+
+        elemental_prism {
+            slot_type = "item"
+            per_unique_element_damage_percent = 10.0
+            upgrades {
+                per_element_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+2% per unique element"
+                }
+                element_duration_common {
+                    rarity = "common"
+                    stackable = true
+                    label = "+10% element duration"
+                }
+                multi_element_bonus_rare {
+                    rarity = "rare"
+                    stackable = true
+                    label = "Bonus damage at 3+ elements"
+                }
+                strongest_element_epic {
+                    rarity = "epic"
+                    stackable = true
+                    label = "Strongest element bonus"
+                }
+            }
+        }
+    }
+}
