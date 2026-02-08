@@ -35,4 +35,7 @@ struct Enemy
     float attackInterval = 1.0f; // Seconds between damage ticks
     int attackDamage = 5;        // Damage dealt to castle per tick
     int xpReward = 10;           // XP earned when killed
+    float burnTimeRemaining = 0.0f;
+    float burnDps = 0.0f;
+    float burnDamageBuffer = 0.0f;
 };

@@ -1,5 +1,10 @@
 # Castle Defense - Gacha System
 
+## Status
+
+This document is the full design reference.  
+Implementation should start with the **V1 subset** defined below.
+
 ## Overview
 
 - After each level, player picks **1 of 3** random choices (like Vampire Survivors)
@@ -10,6 +15,117 @@
 - Upgrades are **infinitely repeatable** -- you can keep stacking them
 - Castle has **5 warrior slots** and **5 item slots**
 - Slots can be rebalanced to **4/6 or 6/4** via one specific warrior (Jeweler) and one specific item (Commander's Seal), but no further -- 4/6 is the limit in either direction
+
+---
+
+## V1 Implementation Rules (Balanced Subset)
+
+Use these rules for the first playable version. Keep the rest of this file as future expansion content.
+
+### 1. Scope
+- Implement only the warriors/items listed in **V1 Content Subset**
+- Ignore all other entries for now
+- Limit mechanics to: projectile hit, AoE, DoT, slow, basic support auras, castle HP/regen/resistance, simple gacha reroll
+
+### 2. Gacha Flow (V1)
+- Between levels, player sees **3 choices and picks 1**
+- Pool contains:
+  - Not-owned base warriors/items that still fit available slots
+  - Upgrades for owned warriors/items
+- If all 3 rolled options are invalid (slot/full constraints), reroll internally until at least 1 valid option exists
+
+### 3. Rarity and Roll Safety
+- Base rarity weights (before Luck):  
+  - Common 60%  
+  - Rare 28%  
+  - Epic 10%  
+  - Legendary 2%
+- **Guaranteed floor:** every 4th gacha must contain at least one Rare+
+- **Legendary lock:** no Legendary results before level 6
+
+### 4. Stacking Caps (Global)
+- Attack speed bonus from all sources combined: **cap +200%**
+- Cooldown reduction from all sources combined: **cap 70%**
+- Global damage amplification from support/item auras: **cap +250%**
+- Proc chance on any effect: **cap 75%**
+- Damage resistance: **cap 75%**
+- Most numeric upgrades: soft diminishing returns after 10 stacks
+
+### 5. Slot Rules (V1)
+- Start at **5 warrior / 5 item**
+- For V1, disable slot-conversion entities (Jeweler + Commander's Seal) to reduce edge-case logic
+- Re-enable in V2 after baseline balance passes
+
+### 6. Engineering Constraints (V1)
+- No airborne state system
+- No fall damage
+- No enemy mind-control/conversion
+- No recursive proc chains (effect triggers effect triggers effect)
+- No "on-death mass resurrection" mechanics
+- Avoid per-frame expensive global scans; use event-driven triggers where possible
+
+---
+
+## V1 Content Subset (Implement First)
+
+### Warriors (8)
+1. Fire Archer
+2. Ice Archer
+3. Lightning Archer
+4. Ballista Operator
+5. Catapult Engineer
+6. Bard
+7. Priestess
+8. Blacksmith
+
+### Items (8)
+1. Ruby Amulet
+2. Sapphire Amulet
+3. Topaz Amulet
+4. Iron Shield Charm
+5. Healing Totem
+6. Scholar's Tome
+7. Lucky Clover
+8. Elemental Prism
+
+---
+
+## V1 Upgrade Policy (Per Entity)
+
+- Keep **4 upgrade lines per entity** in V1:
+  - 2 Common
+  - 1 Rare
+  - 1 Epic
+- Disable Legendary upgrades entirely in V1
+- Keep upgrade text and IDs stable so disabled upgrades can be re-enabled later without save breakage
+
+Suggested V1 pattern:
+- Common A: flat damage/effect value
+- Common B: speed/duration/range
+- Rare: utility or conditional power
+- Epic: signature mechanic for that entity
+
+---
+
+## V1 Balance Targets
+
+- Average level clear time target: **45-75s**
+- Castle HP loss in a successful run:
+  - Early levels: 0-10%
+  - Mid levels: 10-35%
+  - Late levels (before fail): 35-70%
+- A single support pick should not outperform a full damage pick by itself
+- "Best build" should be at most ~2x stronger than median random build (not 5x+)
+
+---
+
+## V2 Re-introduction Plan
+
+After V1 is stable:
+1. Add 4 more warriors + 4 more items
+2. Enable Legendary at low rate
+3. Re-enable Jeweler and Commander's Seal
+4. Add one advanced mechanic family at a time (airborne/fall OR summon chains OR conversion), never multiple in same patch
 
 ## Gacha Pool Rules
 

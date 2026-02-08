@@ -373,7 +373,7 @@ void Render::drawLevelIntro(sf::RenderWindow& window, float deltaTime)
                      window.getSize().y / 2.0f, color);
 }
 
-void Render::drawGame(sf::RenderWindow& window, std::vector<Enemy>& enemies, 
+void Render::drawGame(sf::RenderWindow& window, std::vector<Enemy>& enemies, const std::vector<FireArrowProjectile>& fireArrows,
                        float deltaTime, int level, GameData& gameData) 
 {
     for (Enemy& enemy : enemies)
@@ -393,11 +393,26 @@ void Render::drawGame(sf::RenderWindow& window, std::vector<Enemy>& enemies,
     for (Enemy* enemy : sortedEnemies)
         drawEnemy(window, *enemy);
 
+    drawFireArrows(window, fireArrows);
+
     // XP bar display (top-left HUD)
     drawXPBar(window, gameData);
 
     drawShade(window);
     drawLevelIntro(window, deltaTime);
+}
+
+void Render::drawFireArrows(sf::RenderWindow& window, const std::vector<FireArrowProjectile>& fireArrows)
+{
+    for (const FireArrowProjectile& arrow : fireArrows) {
+        sf::CircleShape ember(3.5f);
+        ember.setOrigin(3.5f, 3.5f);
+        ember.setPosition(arrow.position);
+        ember.setFillColor(sf::Color(255, 140, 20));
+        ember.setOutlineColor(sf::Color(255, 220, 120));
+        ember.setOutlineThickness(1.0f);
+        window.draw(ember);
+    }
 }
 
 void Render::drawCastle(sf::RenderWindow& window) 
@@ -452,6 +467,72 @@ void Render::drawCastle(sf::RenderWindow& window)
         brace.setPosition(900, 450 + i * 80);
         window.draw(brace);
     }
+
+    drawWarriorSlots(window);
+    drawFireArcherInSlotOne(window);
+}
+
+void Render::drawWarriorSlots(sf::RenderWindow& window)
+{
+    constexpr float slotTopY = 282.0f;
+    constexpr float firstSlotX = 930.0f;
+    constexpr float slotSpacing = 60.0f;
+
+    for (int i = 0; i < 5; ++i) {
+        sf::CircleShape slot(14.0f);
+        slot.setFillColor(sf::Color(90, 90, 90));
+        slot.setOutlineColor(sf::Color::Black);
+        slot.setOutlineThickness(2.0f);
+        slot.setOrigin(14.0f, 14.0f);
+        slot.setPosition(firstSlotX + slotSpacing * static_cast<float>(i), slotTopY);
+        window.draw(slot);
+    }
+}
+
+void Render::drawFireArcherInSlotOne(sf::RenderWindow& window)
+{
+    // Slot 1 is the left-most warrior slot for now.
+    constexpr float slotX = 930.0f;
+    constexpr float slotY = 282.0f;
+
+    // Feet/stand point slightly above the slot marker so the unit reads clearly.
+    const float anchorX = slotX;
+    const float anchorY = slotY - 8.0f;
+
+    sf::RectangleShape legs(sf::Vector2f(10.0f, 12.0f));
+    legs.setFillColor(sf::Color(70, 40, 20));
+    legs.setOrigin(5.0f, 12.0f);
+    legs.setPosition(anchorX, anchorY);
+    window.draw(legs);
+
+    sf::RectangleShape body(sf::Vector2f(14.0f, 16.0f));
+    body.setFillColor(sf::Color(180, 60, 30));
+    body.setOutlineColor(sf::Color::Black);
+    body.setOutlineThickness(1.0f);
+    body.setOrigin(7.0f, 16.0f);
+    body.setPosition(anchorX, anchorY - 10.0f);
+    window.draw(body);
+
+    sf::CircleShape head(5.5f);
+    head.setFillColor(sf::Color(230, 190, 150));
+    head.setOutlineColor(sf::Color::Black);
+    head.setOutlineThickness(1.0f);
+    head.setOrigin(5.5f, 5.5f);
+    head.setPosition(anchorX, anchorY - 30.0f);
+    window.draw(head);
+
+    sf::Vertex bowLine[] = {
+        sf::Vertex(sf::Vector2f(anchorX + 7.0f, anchorY - 24.0f), sf::Color(110, 70, 35)),
+        sf::Vertex(sf::Vector2f(anchorX + 7.0f, anchorY - 10.0f), sf::Color(110, 70, 35))
+    };
+    window.draw(bowLine, 2, sf::Lines);
+
+    sf::Vertex bowString[] = {
+        sf::Vertex(sf::Vector2f(anchorX + 9.0f, anchorY - 24.0f), sf::Color(220, 220, 220)),
+        sf::Vertex(sf::Vector2f(anchorX + 7.0f, anchorY - 17.0f), sf::Color(220, 220, 220)),
+        sf::Vertex(sf::Vector2f(anchorX + 9.0f, anchorY - 10.0f), sf::Color(220, 220, 220))
+    };
+    window.draw(bowString, 3, sf::LineStrip);
 }
 
 void Render::drawEnemy(sf::RenderWindow& window, Enemy& enemy) 
@@ -602,4 +683,27 @@ void Render::drawEnemy(sf::RenderWindow& window, Enemy& enemy)
     part.setFillColor(withAlpha(color));
     part.setPosition(x + 2 * scale, adjustedY);
     window.draw(part, states);
+
+    // Burn VFX: subtle animated flames around torso while DoT is active.
+    if (enemy.state != EnemyState::Dead && enemy.burnTimeRemaining > 0.0f) {
+        float intensity = std::min(1.0f, enemy.burnTimeRemaining / 3.0f);
+        float flicker = 0.7f + 0.3f * std::sin(enemy.animationTime * 20.0f);
+        sf::Uint8 flameAlpha = static_cast<sf::Uint8>(200.0f * intensity * flicker);
+
+        auto drawFlame = [&](sf::Vector2f pos, float radius, sf::Color c) {
+            sf::CircleShape flame(radius);
+            flame.setOrigin(radius, radius);
+            flame.setPosition(pos);
+            flame.setFillColor(c);
+            window.draw(flame, states);
+        };
+
+        float bob = std::sin(enemy.animationTime * 16.0f) * 2.0f * scale;
+        sf::Vector2f chest(x + 10.0f * scale, adjustedY + 24.0f * scale + bob);
+
+        drawFlame({chest.x - 6.0f * scale, chest.y}, 3.5f * scale, sf::Color(255, 120, 20, flameAlpha));
+        drawFlame({chest.x, chest.y - 4.0f * scale}, 4.0f * scale, sf::Color(255, 170, 40, flameAlpha));
+        drawFlame({chest.x + 6.0f * scale, chest.y + 1.0f * scale}, 3.0f * scale, sf::Color(255, 90, 10, flameAlpha));
+        drawFlame({chest.x, chest.y - 7.0f * scale}, 2.0f * scale, sf::Color(255, 230, 120, flameAlpha));
+    }
 }

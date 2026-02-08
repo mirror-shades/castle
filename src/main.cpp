@@ -6,6 +6,7 @@
 #include "buttons.h"
 #include "core.h"
 #include "levels.h"
+#include "warrior.h"
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
@@ -96,6 +97,7 @@ int main()
     GameState gameState = GameState::MainMenu;
     Buttons buttons;
     std::vector<Enemy> enemies;
+    std::vector<FireArrowProjectile> fireArrows;
     sf::Clock clock;
     GameData gameData;
 
@@ -121,6 +123,10 @@ int main()
     sf::Vector2f throwVelocity = {0.0f, 0.0f};  // Accumulated throw velocity
     const float MAX_THROW_VELOCITY = 800.0f;  // Cap throw speed
     const float VELOCITY_DECAY = 0.85f;  // How much old velocity to keep (preserves momentum)
+    const sf::Vector2f FIRE_ARCHER_POS = {930.0f, 266.0f};
+    const float FIRE_ARCHER_ATTACK_INTERVAL = 1.0f;
+    const float FIRE_ARROW_SPEED = 700.0f;
+    float fireArcherAttackTimer = 0.0f;
 
     while (window.isOpen()) {
         float deltaTime = clock.restart().asSeconds();
@@ -141,6 +147,8 @@ int main()
                             nextSpawnIndex = 0;
                             levelElapsedTime = 0.0f;
                             enemies.clear();
+                            fireArrows.clear();
+                            fireArcherAttackTimer = 0.0f;
                         }
                     }
                     else if (gameState == GameState::GameOver){
@@ -149,8 +157,10 @@ int main()
                             // Reset game data for a fresh start
                             gameData = GameData();
                             enemies.clear();
+                            fireArrows.clear();
                             grabbedEnemyIndex = -1;
                             render.setTargetShade(0.78f);
+                            fireArcherAttackTimer = 0.0f;
                         }
                     }
                     else if (gameState == GameState::LevelComplete) {
@@ -174,7 +184,9 @@ int main()
                                 nextSpawnIndex = 0;
                                 levelElapsedTime = 0.0f;
                                 enemies.clear();
+                                fireArrows.clear();
                                 grabbedEnemyIndex = -1;
+                                fireArcherAttackTimer = 0.0f;
                             }
                         }
                     }
@@ -264,9 +276,186 @@ int main()
             levelElapsedTime += deltaTime;
             checkAndSpawnEnemies(levelElapsedTime, currentTimings, nextSpawnIndex, enemies);
 
+            auto killEnemy = [&](Enemy& enemy) {
+                if (enemy.state == EnemyState::Dead) return;
+                enemy.state = EnemyState::Dead;
+                enemy.deathTime = 0.0f;
+                int xpGained = static_cast<int>(enemy.xpReward * gameData.xpMultiplier);
+                gameData.xp += xpGained;
+                gameData.totalXP += xpGained;
+            };
+
+            auto enemyEffectiveVelocity = [](const Enemy& enemy) -> sf::Vector2f {
+                if (enemy.state == EnemyState::Falling) {
+                    return enemy.velocity;
+                }
+                if (enemy.state == EnemyState::Walking) {
+                    // Most walkers advance with speed directly, not velocity.x.
+                    float walkVx = (std::abs(enemy.velocity.x) > 1.0f) ? enemy.velocity.x : enemy.speed;
+                    return {walkVx, 0.0f};
+                }
+                return {0.0f, 0.0f};
+            };
+
+            auto computeInterceptDirection = [](sf::Vector2f shooterPos,
+                                                sf::Vector2f targetPos,
+                                                sf::Vector2f targetVel,
+                                                float projectileSpeed,
+                                                sf::Vector2f& outDir) -> bool {
+                sf::Vector2f r = targetPos - shooterPos;
+                float a = targetVel.x * targetVel.x + targetVel.y * targetVel.y - projectileSpeed * projectileSpeed;
+                float b = 2.0f * (r.x * targetVel.x + r.y * targetVel.y);
+                float c = r.x * r.x + r.y * r.y;
+
+                float t = -1.0f;
+                if (std::abs(a) < 1e-4f) {
+                    if (std::abs(b) < 1e-4f) return false;
+                    t = -c / b;
+                } else {
+                    float disc = b * b - 4.0f * a * c;
+                    if (disc < 0.0f) return false;
+                    float sqrtDisc = std::sqrt(disc);
+                    float t1 = (-b - sqrtDisc) / (2.0f * a);
+                    float t2 = (-b + sqrtDisc) / (2.0f * a);
+                    if (t1 > 0.0f && t2 > 0.0f) t = std::min(t1, t2);
+                    else if (t1 > 0.0f) t = t1;
+                    else if (t2 > 0.0f) t = t2;
+                }
+                if (t <= 0.0f) return false;
+
+                sf::Vector2f aimPoint = targetPos + targetVel * t;
+                sf::Vector2f dir = aimPoint - shooterPos;
+                float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+                if (len <= 0.001f) return false;
+                outDir = dir / len;
+                return true;
+            };
+
+            auto lineIntersectsRect = [](sf::Vector2f p0, sf::Vector2f p1, const sf::FloatRect& rect) -> bool {
+                float t0 = 0.0f;
+                float t1 = 1.0f;
+                float dx = p1.x - p0.x;
+                float dy = p1.y - p0.y;
+
+                auto clip = [&](float p, float q) -> bool {
+                    if (std::abs(p) < 1e-6f) return q >= 0.0f;
+                    float r = q / p;
+                    if (p < 0.0f) {
+                        if (r > t1) return false;
+                        if (r > t0) t0 = r;
+                    } else {
+                        if (r < t0) return false;
+                        if (r < t1) t1 = r;
+                    }
+                    return true;
+                };
+
+                return clip(-dx, p0.x - rect.left) &&
+                       clip(dx, rect.left + rect.width - p0.x) &&
+                       clip(-dy, p0.y - rect.top) &&
+                       clip(dy, rect.top + rect.height - p0.y) &&
+                       t1 >= t0;
+            };
+
+            // Fire Archer auto-attacks the nearest living enemy.
+            fireArcherAttackTimer += deltaTime;
+            if (fireArcherAttackTimer >= FIRE_ARCHER_ATTACK_INTERVAL) {
+                int nearestEnemyIndex = -1;
+                float nearestDistSq = 0.0f;
+                for (size_t i = 0; i < enemies.size(); ++i) {
+                    if (enemies[i].state == EnemyState::Dead) continue;
+                    sf::Vector2f toEnemy = enemies[i].position - FIRE_ARCHER_POS;
+                    float distSq = toEnemy.x * toEnemy.x + toEnemy.y * toEnemy.y;
+                    if (nearestEnemyIndex == -1 || distSq < nearestDistSq) {
+                        nearestEnemyIndex = static_cast<int>(i);
+                        nearestDistSq = distSq;
+                    }
+                }
+
+                if (nearestEnemyIndex >= 0) {
+                    fireArcherAttackTimer = 0.0f;
+                    const Enemy& target = enemies[nearestEnemyIndex];
+                    sf::Vector2f targetVel = enemyEffectiveVelocity(target);
+                    sf::Vector2f direction;
+
+                    bool hasLead = computeInterceptDirection(
+                        FIRE_ARCHER_POS, target.position, targetVel, FIRE_ARROW_SPEED, direction);
+
+                    if (!hasLead) {
+                        sf::Vector2f toEnemy = target.position - FIRE_ARCHER_POS;
+                        float length = std::sqrt(toEnemy.x * toEnemy.x + toEnemy.y * toEnemy.y);
+                        if (length > 0.001f) {
+                            direction = toEnemy / length;
+                            hasLead = true;
+                        }
+                    }
+
+                    if (hasLead) {
+                        FireArrowProjectile arrow;
+                        arrow.position = FIRE_ARCHER_POS;
+                        arrow.velocity = direction * FIRE_ARROW_SPEED;
+                        fireArrows.push_back(arrow);
+                    }
+                }
+            }
+
+            // Update Fire Archer projectiles and apply hits.
+            for (size_t i = 0; i < fireArrows.size();) {
+                FireArrowProjectile& arrow = fireArrows[i];
+                sf::Vector2f prevPos = arrow.position;
+                arrow.position += arrow.velocity * deltaTime;
+
+                bool consumed = false;
+                for (Enemy& enemy : enemies) {
+                    if (enemy.state == EnemyState::Dead) continue;
+                    sf::FloatRect hitbox(enemy.position.x - 10.0f, enemy.position.y - 5.0f, 40.0f, 65.0f);
+                    if (hitbox.contains(prevPos) || hitbox.contains(arrow.position) ||
+                        lineIntersectsRect(prevPos, arrow.position, hitbox)) {
+                        enemy.hp -= arrow.directDamage;
+                        enemy.burnDps = std::max(enemy.burnDps, arrow.burnDps);
+                        enemy.burnTimeRemaining = std::max(enemy.burnTimeRemaining, arrow.burnDuration);
+                        if (enemy.hp <= 0) {
+                            killEnemy(enemy);
+                        }
+                        consumed = true;
+                        break;
+                    }
+                }
+
+                if (!consumed) {
+                    if (arrow.position.x < -50.0f || arrow.position.x > 1250.0f ||
+                        arrow.position.y < -50.0f || arrow.position.y > 770.0f) {
+                        consumed = true;
+                    }
+                }
+
+                if (consumed) {
+                    fireArrows.erase(fireArrows.begin() + static_cast<long long>(i));
+                } else {
+                    ++i;
+                }
+            }
+
             // Update enemies
             for (Enemy& enemy : enemies)
             {
+                if (enemy.state != EnemyState::Dead && enemy.burnTimeRemaining > 0.0f) {
+                    enemy.burnTimeRemaining = std::max(0.0f, enemy.burnTimeRemaining - deltaTime);
+                    enemy.burnDamageBuffer += enemy.burnDps * deltaTime;
+                    int burnDamage = static_cast<int>(enemy.burnDamageBuffer);
+                    if (burnDamage > 0) {
+                        enemy.burnDamageBuffer -= static_cast<float>(burnDamage);
+                        enemy.hp -= burnDamage;
+                        if (enemy.hp <= 0) {
+                            killEnemy(enemy);
+                        }
+                    }
+                    if (enemy.burnTimeRemaining <= 0.0f) {
+                        enemy.burnDps = 0.0f;
+                        enemy.burnDamageBuffer = 0.0f;
+                    }
+                }
+
                 if (enemy.state == EnemyState::Walking)
                 {
                     // Apply any remaining horizontal velocity (from landing after throw)
@@ -344,12 +533,7 @@ int main()
                         
                         if (enemy.hp <= 0)
                         {
-                            enemy.state = EnemyState::Dead;
-                            enemy.deathTime = 0.0f;
-                            // Award XP with multiplier
-                            int xpGained = static_cast<int>(enemy.xpReward * gameData.xpMultiplier);
-                            gameData.xp += xpGained;
-                            gameData.totalXP += xpGained;
+                            killEnemy(enemy);
                         }
                         else
                         {
@@ -396,10 +580,11 @@ int main()
                     currentReward = rollGachaReward(gameData.level);
                     gachaTimer = 0.0f;
                     grabbedEnemyIndex = -1;
+                    fireArrows.clear();
                 }
             }
              
-            render.drawGame(window, enemies, deltaTime, gameData.level, gameData);
+            render.drawGame(window, enemies, fireArrows, deltaTime, gameData.level, gameData);
         }
         else if (gameState == GameState::LevelComplete)
         {

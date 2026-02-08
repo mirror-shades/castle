@@ -3,6 +3,7 @@
 #include "enemy.h"
 #include "buttons.h"
 #include "state.h"
+#include "warrior.h"
 
 class Render
 {
@@ -14,7 +15,7 @@ public:
     void drawEnemies(sf::RenderWindow& window, std::vector<Enemy>& enemies);
     void drawMainMenu(sf::RenderWindow& window, Buttons& buttons);
     void drawGameOver(sf::RenderWindow& window, Buttons& buttons, GameData& gameData);
-    void drawGame(sf::RenderWindow& window, std::vector<Enemy>& enemies, float deltaTime, int level, GameData& gameData);
+    void drawGame(sf::RenderWindow& window, std::vector<Enemy>& enemies, const std::vector<FireArrowProjectile>& fireArrows, float deltaTime, int level, GameData& gameData);
     void drawLevelComplete(sf::RenderWindow& window, Buttons& buttons, GameData& gameData, const GachaReward& reward, float timer);
     void drawVictory(sf::RenderWindow& window, GameData& gameData);
     
@@ -28,6 +29,9 @@ public:
     
 private:
     void drawEnemy(sf::RenderWindow& window, Enemy& enemy);
+    void drawWarriorSlots(sf::RenderWindow& window);
+    void drawFireArcherInSlotOne(sf::RenderWindow& window);
+    void drawFireArrows(sf::RenderWindow& window, const std::vector<FireArrowProjectile>& fireArrows);
     void drawHealthBar(sf::RenderWindow& window, int currentHealth, int maxHealth);
     void drawXPBar(sf::RenderWindow& window, GameData& gameData);
     void drawLevelIntro(sf::RenderWindow& window, float deltaTime);
